@@ -107,8 +107,8 @@ class vid_dataset(data.Dataset):
         pair = self.pairs[idx]
         template_file,img_file = pair[0],pair[1]
         temp_gt,img_gt = np.array(pair[2]).astype(np.float32),np.array(pair[3]).astype(np.float32) ## x1 y1 x2 y2
-        init_gt = np.array(temp_gt[1],temp_gt[0],temp_gt[3],temp_gt[2])
-        cur_gt = np.array(img_gt[1],img_gt[0],img_gt[3],img_gt[2]) ## y1 x1 y2 x2
+        init_gt = np.array([temp_gt[1],temp_gt[0],temp_gt[3],temp_gt[2]])
+        cur_gt = np.array([img_gt[1],img_gt[0],img_gt[3],img_gt[2]]) ## y1 x1 y2 x2
 
     ## prepare for template
         init_img_array = cv2.imread(self.img_root + template_file)
@@ -119,60 +119,61 @@ class vid_dataset(data.Dataset):
             init_img_array = np.repeat(init_img_array, repeats=3, axis=2)
             init_img = Image.fromarray(init_img_array)
 
-            Padding = True
-            init_img_width, init_img_height = init_img.size
+        Padding = True
+        init_img_width, init_img_height = init_img.size
 
-            img1_xiaobai = np.array(init_img)
-            gt_boxes = np.zeros((1, 4))
-            gt_boxes[0, 0] = init_gt[0] / float(init_img_height)
-            gt_boxes[0, 1] = init_gt[1] / float(init_img_width)
-            gt_boxes[0, 2] = init_gt[2] / float(init_img_height)
-            gt_boxes[0, 3] = init_gt[3] / float(init_img_width)
+        img1_xiaobai = np.array(init_img)
+        gt_boxes = np.zeros((1, 4))
+        gt_boxes[0, 0] = init_gt[0] / float(init_img_height)
+        gt_boxes[0, 1] = init_gt[1] / float(init_img_width)
+        gt_boxes[0, 2] = init_gt[2] / float(init_img_height)
+        gt_boxes[0, 3] = init_gt[3] / float(init_img_width)
 
-            if Padding:
-                pad_x = 36.0 / 264.0 * (gt_boxes[0, 3] - gt_boxes[0, 1]) * init_img_width
-                pad_y = 36.0 / 264.0 * (gt_boxes[0, 2] - gt_boxes[0, 0]) * init_img_height
-                startx = gt_boxes[0, 1] * init_img_width - pad_x
-                starty = gt_boxes[0, 0] * init_img_height - pad_y
-                endx = gt_boxes[0, 3] * init_img_width + pad_x
-                endy = gt_boxes[0, 2] * init_img_height + pad_y
+        if Padding:
+            pad_x = 36.0 / 264.0 * (gt_boxes[0, 3] - gt_boxes[0, 1]) * init_img_width
+            pad_y = 36.0 / 264.0 * (gt_boxes[0, 2] - gt_boxes[0, 0]) * init_img_height
+            startx = gt_boxes[0, 1] * init_img_width - pad_x
+            starty = gt_boxes[0, 0] * init_img_height - pad_y
+            endx = gt_boxes[0, 3] * init_img_width + pad_x
+            endy = gt_boxes[0, 2] * init_img_height + pad_y
 
-                left_pad = max(0, int(-startx))
-                top_pad = max(0, int(-starty))
-                right_pad = max(0, int(endx - init_img_width + 1))
-                bottom_pad = max(0, int(endy - init_img_height + 1))  ## prevent bbox out of init_img
+            left_pad = max(0, int(-startx))
+            top_pad = max(0, int(-starty))
+            right_pad = max(0, int(endx - init_img_width + 1))
+            bottom_pad = max(0, int(endy - init_img_height + 1))  ## prevent bbox out of init_img
 
-                ## re-compute the x1,x2,y1,y2 after padding
-                startx = int(startx + left_pad)
-                starty = int(starty + top_pad)
-                endx = int(endx + left_pad)
-                endy = int(endy + top_pad)
+            ## re-compute the x1,x2,y1,y2 after padding
+            startx = int(startx + left_pad)
+            starty = int(starty + top_pad)
+            endx = int(endx + left_pad)
+            endy = int(endy + top_pad)
 
-                if top_pad or left_pad or bottom_pad or right_pad:
-                    r = np.pad(img1_xiaobai[:, :, 0], ((top_pad, bottom_pad), (left_pad, right_pad)), mode='constant',
-                               constant_values=128)
-                    g = np.pad(img1_xiaobai[:, :, 1], ((top_pad, bottom_pad), (left_pad, right_pad)), mode='constant',
-                               constant_values=128)
-                    b = np.pad(img1_xiaobai[:, :, 2], ((top_pad, bottom_pad), (left_pad, right_pad)), mode='constant',
-                               constant_values=128)  ## padding value=128 ?
-                    r = np.expand_dims(r, 2)
-                    g = np.expand_dims(g, 2)
-                    b = np.expand_dims(b, 2)
+            if top_pad or left_pad or bottom_pad or right_pad:
+                r = np.pad(img1_xiaobai[:, :, 0], ((top_pad, bottom_pad), (left_pad, right_pad)), mode='constant',
+                           constant_values=128)
+                g = np.pad(img1_xiaobai[:, :, 1], ((top_pad, bottom_pad), (left_pad, right_pad)), mode='constant',
+                           constant_values=128)
+                b = np.pad(img1_xiaobai[:, :, 2], ((top_pad, bottom_pad), (left_pad, right_pad)), mode='constant',
+                           constant_values=128)  ## padding value=128 ?
+                r = np.expand_dims(r, 2)
+                g = np.expand_dims(g, 2)
+                b = np.expand_dims(b, 2)
 
-                    img1_xiaobai = np.concatenate((r, g, b), axis=2)
-            else:
-                startx = gt_boxes[0, 1] * init_img_width
-                starty = gt_boxes[0, 0] * init_img_height
-                endx = gt_boxes[0, 3] * init_img_width
-                endy = gt_boxes[0, 2] * init_img_height
+                img1_xiaobai = np.concatenate((r, g, b), axis=2)
+        else:
+            startx = gt_boxes[0, 1] * init_img_width
+            starty = gt_boxes[0, 0] * init_img_height
+            endx = gt_boxes[0, 3] * init_img_width
+            endy = gt_boxes[0, 2] * init_img_height
 
-            img1_xiaobai = Image.fromarray(img1_xiaobai)
+        img1_xiaobai = Image.fromarray(img1_xiaobai)
 
-            # gt_boxes resize
-            init_img_crop = img1_xiaobai.crop(np.int32([startx, starty, endx, endy]))
-            init_img_crop = init_img_crop.resize([128, 128], resample=Image.BILINEAR)
+        # gt_boxes resize
+        init_img_crop = img1_xiaobai.crop(np.int32([startx, starty, endx, endy]))
+        init_img_crop = init_img_crop.resize([128, 128], resample=Image.BILINEAR)
 
-            init_img_array = np.array(init_img_crop)
+        init_img_array = np.array(init_img_crop)
+
 
 
     ## prepare for search region
