@@ -180,26 +180,27 @@ class basketball_dataset(data.Dataset):
 
         ## if not padding, the size of predict box will not be very correct
         Padding = True
+        init_img_width,init_img_height = init_img.size
 
         img1_xiaobai = np.array(init_img)
         gt_boxes = np.zeros((1, 4))
-        gt_boxes[0, 0] = init_gt[0] / float(init_img.height)
-        gt_boxes[0, 1] = init_gt[1] / float(init_img.width)
-        gt_boxes[0, 2] = init_gt[2] / float(init_img.height)
-        gt_boxes[0, 3] = init_gt[3] / float(init_img.width)
+        gt_boxes[0, 0] = init_gt[0] / float(init_img_height)
+        gt_boxes[0, 1] = init_gt[1] / float(init_img_width)
+        gt_boxes[0, 2] = init_gt[2] / float(init_img_height)
+        gt_boxes[0, 3] = init_gt[3] / float(init_img_width)
 
         if Padding:
-            pad_x = 36.0 / 264.0 * (gt_boxes[0, 3] - gt_boxes[0, 1]) * init_img.width
-            pad_y = 36.0 / 264.0 * (gt_boxes[0, 2] - gt_boxes[0, 0]) * init_img.height
-            startx = gt_boxes[0, 1] * init_img.width - pad_x
-            starty = gt_boxes[0, 0] * init_img.height - pad_y
-            endx = gt_boxes[0, 3] * init_img.width + pad_x
-            endy = gt_boxes[0, 2] * init_img.height + pad_y
+            pad_x = 36.0 / 264.0 * (gt_boxes[0, 3] - gt_boxes[0, 1]) * init_img_width
+            pad_y = 36.0 / 264.0 * (gt_boxes[0, 2] - gt_boxes[0, 0]) * init_img_height
+            startx = gt_boxes[0, 1] * init_img_width - pad_x
+            starty = gt_boxes[0, 0] * init_img_height - pad_y
+            endx = gt_boxes[0, 3] * init_img_width + pad_x
+            endy = gt_boxes[0, 2] * init_img_height + pad_y
 
             left_pad = max(0, int(-startx))
             top_pad = max(0, int(-starty))
-            right_pad = max(0, int(endx - init_img.width + 1))
-            bottom_pad = max(0, int(endy - init_img.height + 1))  ## prevent bbox out of init_img
+            right_pad = max(0, int(endx - init_img_width + 1))
+            bottom_pad = max(0, int(endy - init_img_height + 1))  ## prevent bbox out of init_img
 
             ## re-compute the x1,x2,y1,y2 after padding
             startx = int(startx + left_pad)
@@ -220,10 +221,10 @@ class basketball_dataset(data.Dataset):
 
                 img1_xiaobai = np.concatenate((r, g, b), axis=2)
         else:
-            startx = gt_boxes[0, 1] * init_img.width
-            starty = gt_boxes[0, 0] * init_img.height
-            endx = gt_boxes[0, 3] * init_img.width
-            endy = gt_boxes[0, 2] * init_img.height
+            startx = gt_boxes[0, 1] * init_img_width
+            starty = gt_boxes[0, 0] * init_img_height
+            endx = gt_boxes[0, 3] * init_img_width
+            endy = gt_boxes[0, 2] * init_img_height
 
         img1_xiaobai = Image.fromarray(img1_xiaobai)
 
