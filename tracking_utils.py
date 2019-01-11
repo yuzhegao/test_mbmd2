@@ -104,18 +104,22 @@ def get_configs_from_pipeline_file(config_file):
   return model_config, train_config, input_config, eval_config
 
 def show_res(im, box, win_name,score=None,save_path=None,frame_id=None,all_frame=None,score_max=None):
-    cv2.namedWindow(win_name,cv2.WINDOW_NORMAL)
+    #cv2.namedWindow(win_name,cv2.WINDOW_NORMAL)
     cv2.rectangle(im, (box[1], box[0]),
                   (box[3], box[2]), [0, 255, 0], 2)
+    """
     if score is not None:
         cv2.putText(im,str(score),(20,40), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),1)
     if score_max is not None:
         cv2.putText(im,str(score_max),(20,60), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),1)
     if frame_id is not None:
-        cv2.putText(im,str(frame_id),(20,20), cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),1)
+        cv2.putText(im,str(frame_id),(20,20),
+        cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),1)
+    """
     #cv2.imwrite("/home/xiaobai/lijun/base_vid_maml_box_baseline/fig/%05d.jpg"%frame_id, im[:, :, -1::-1])
-    cv2.imshow(win_name, im)
-    cv2.waitKey(1)
+    #cv2.imshow(win_name, im)
+    cv2.imwrite(save_path,im)
+    #cv2.waitKey(1)
 
 def restore_model(sess, model_scope, checkpoint_path, variables_to_restore):
     # variables_to_restore = tf.global_variables()

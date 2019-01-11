@@ -20,7 +20,7 @@ from core.model_builder import build_man_model
 from sample_generator import *
 from google.protobuf import text_format
 from train.data_utils import draw_box,draw_mulitbox,iou_y1x1y2x2
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 
 
@@ -196,15 +196,20 @@ class MobileTracker(object):
 
 
 
-
-        self.sess = tf.Session()
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+        config.log_device_placement = False
+        
+        self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
         variables_to_restore = tf.global_variables()
         self.var_all = variables_to_restore
 
-        if not training:
-            restore_model(self.sess, checkpoint_dir, variables_to_restore)  ## restore the siamese network checkpoint
-        else:
+        self.log_f = open('log_vid.txt','w+')
+
+        pretrained = True
+        if pretrained:
             var_map = model.restore_map(
                 from_detection_checkpoint=train_config.from_detection_checkpoint)
             var_map_init = model.restore_init_map(
@@ -282,25 +287,38 @@ class MobileTracker(object):
         cur_iou = iou_y1x1y2x2(sample1_det, sample1_gt)
 
         print 'iou {}'.format(cur_iou)
+        
+        total_loss = loss_dict['localization_loss'] + loss_dict['classification_loss']
+        self.i += 1
+        if self.i % 200 == 0:
+            print '\n\nwrite in log file\n\n'
+            with open('log_vid.txt','a') as f:
+                f.write('iter {} loss={}  iou={}\n'.format(self.i,total_loss,cur_iou))
 
 
 if __name__ == '__main__':
 
     import torch
-    from train.data_loader import basketball_dataset,otb_collate
+    #from train.data_loader import basketball_dataset,otb_collate
+    from pair_dataset import vid_dataset,vid_collate
 
-    bs = 2
+    bs = 16
 
     tracker = MobileTracker(bs,train_phase=True)
 
-    test_loader = basketball_dataset('../t_data/part_vot_seq/')
+    test_loader = vid_dataset('data_prepare/vid_all.pkl','../t_data/vid_data/Data/VID/train/')
     print (len(test_loader))
-    data_loader = torch.utils.data.DataLoader(test_loader,
-                                              batch_size=bs, shuffle=True, num_workers=1, collate_fn=otb_collate)
+    data_loader = torch.utils.data.DataLoader(test_loader,batch_size=bs, shuffle=True,num_workers=1,
+                                              collate_fn=vid_collate,drop_last=True)
 
     model_saver = tf.train.Saver(max_to_keep=2,var_list=tracker.var_all)
 
-    for i in range(50):
+    from datetime import datetime
+
+    for i in range(2):
+        with open('log_vid.txt','a') as f:
+            time_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+            f.write('\nepoch begin {}\n'.format(time_string))
         for idx, (templates, imgs, gts, labels) in enumerate(data_loader):
             print "in Epoch {} iter {}".format(i,idx)
             # print(templates.shape)
@@ -315,9 +333,11 @@ if __name__ == '__main__':
             # cv2.imwrite('tmp3/{}_tp.jpg'.format(idx),sample1_tp)
 
             tracker.train_step(templates, imgs, gts,labels)
-        if i % 2 == 0:
-            save_path = model_saver.save(tracker.sess, 'model/ssd_mobilenet_video1/model.ckpt')
-            print 'save model in {}'.format(save_path)
+            if idx % 5000 == 0:
+                save_path = model_saver.save(tracker.sess, 'model/vid_model/model.ckpt')
+                print 'save model in {}'.format(save_path)
+            if idx == 500000:
+                exit()
 
 
 

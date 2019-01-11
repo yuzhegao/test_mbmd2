@@ -29,7 +29,12 @@ Polygon = collections.namedtuple('Polygon', ['points'])
 #print trax.image.PATH
 
 def parse_region(string):
-    tokens = map(float, string.split(','))
+
+    if len(string.rstrip().split(',')) > 1:
+        tokens = map(float, string.split(','))
+    else:
+        tokens = map(float, string.split())
+
     if len(tokens) == 4:
         return Rectangle(tokens[0], tokens[1], tokens[2], tokens[3])
     elif len(tokens) % 2 == 0 and len(tokens) > 4:
@@ -40,7 +45,7 @@ def encode_region(region):
     if isinstance(region, Polygon):
         return ','.join(['{},{}'.format(p.x,p.y) for p in region.points])
     elif isinstance(region, Rectangle):
-        return '{},{},{},{}'.format(region.x, region.y, region.width, region.height)
+        return '{} {} {} {}'.format(int(region.x), int(region.y), int(region.width), int(region.height))
     else:
         return ""
 
@@ -85,7 +90,7 @@ def convert_region(region, to):
 
 class VOT(object):
     """ Base class for Python VOT integration """
-    def __init__(self, region_format):
+    def __init__(self, region_format,img_list,region_file,seq_name):
         """ Constructor
 
         Args:
@@ -107,13 +112,25 @@ class VOT(object):
             self._image = str(request.image)
             self._trax.status(request.region)
 
-        ## if without trax   Basketball  Bird2 MountainBike
+        ## if without trax   Basketball  Bird2 MountainBike Human2
         else:
-            self._files = [x.strip('\n') for x in open('/home/yuzhe/Downloads/Basketball/images.txt', 'r').readlines()]
+            self._files = img_list
             self._frame = 0
-            self._region = convert_region(parse_region(open('/home/yuzhe/Downloads/Basketball/region.txt', 'r').readline()), region_format)
             self._result = []
-            self._all_region = [re.strip('\n').split(',') for re in open('/home/yuzhe/Downloads/Basketball/region.txt', 'r').readlines()]
+
+            with open(region_file,'r') as fl:
+                lines = fl.readlines()
+
+                if len(lines[0].rstrip().split(',')) > 1:
+                    for i, line in enumerate(lines):
+                        lines[i] = line.rstrip().split(',')
+                else:
+                    for i, line in enumerate(lines):
+                        lines[i] = line.rstrip().split()
+
+            self._region = convert_region(parse_region(open(region_file, 'r').readline()), region_format)
+            self._all_region = lines
+            self._seq_name = seq_name
 
             print 'VOT class: frame*{} gt*{}'.format(len(self._files),len(self._all_region))
 
@@ -179,7 +196,8 @@ class VOT(object):
         if TRAX:
             self._trax.quit()
         elif hasattr(self, '_result'):
-            with open('output.txt', 'w') as f:
+            output_txt = "tmp1_1/{}_MBMD2.txt".format(self._seq_name)
+            with open(output_txt, 'w') as f:
                 for r in self._result:
                     f.write(encode_region(r))
                     f.write('\n')

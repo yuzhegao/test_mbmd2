@@ -182,7 +182,9 @@ class vid_dataset(data.Dataset):
 
         offset_x = random.random() - 0.5
         offset_y = random.random() - 0.5
-        search_region, _, win_loc, scaled = crop_search_region(img, cur_gt, self.img_size, offset=[offset_x, offset_y])
+        scale = np.clip(random.random()*4,2,4)
+        search_region, _, win_loc, scaled = crop_search_region(img, cur_gt,
+                                                    self.img_size,scale=scale, offset=[offset_x, offset_y])
 
         gt_search_region = [(cur_gt[0] - win_loc[0]) / scaled[0],
                             (cur_gt[1] - win_loc[1]) / scaled[1],
@@ -227,7 +229,7 @@ def vid_collate(batch):
 
 ################################################
 if __name__ == '__main__':
-    test_loader = vid_dataset('../data_utils/vid_test.pkl','../../t_data/vid_data/Data/VID/train/')
+    test_loader = vid_dataset('data_prepare/vid_all.pkl','../t_data/vid_data/Data/VID/train/')
     print (len(test_loader))
     data_loader = torch.utils.data.DataLoader(test_loader,batch_size=4,
                                               shuffle=True, num_workers=1, collate_fn=vid_collate)
@@ -242,10 +244,10 @@ if __name__ == '__main__':
         print(imgs[3][0].dtype)
 
         print idx
-        #img1 = Image.fromarray(imgs[0][0])
-        #gt1 = gts[0][0]*300
-        #gt1 = [gt1[1],gt1[0],gt1[3],gt1[2]]## x1 y1 x2 y2
-        #draw_box(img1, gt1, img_path='tmp/{}.jpg'.format(idx))
+        img1 = Image.fromarray(imgs[0])
+        gt1 = gts[0][0]*300
+        gt1 = [gt1[1],gt1[0],gt1[3],gt1[2]]## x1 y1 x2 y2
+        draw_box(img1, gt1, img_path='tmp2/{}.jpg'.format(idx))
         
         #print (imgs.shape)
         print (templates.dtype)
